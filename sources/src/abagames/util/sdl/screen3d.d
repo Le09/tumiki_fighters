@@ -80,15 +80,40 @@ public class Screen3D: Screen {
         SDL_GL_GetDrawableSize(window, &screenWidth, &screenHeight);
       }
     }
-    glViewport(screenStartX, screenStartY, screenWidth, screenHeight);
+    
+    // Calculate aspect ratio preserving viewport
+    const float TARGET_ASPECT = 4.0f / 3.0f; // 640/480
+    const float windowAspect = cast(float)screenWidth / cast(float)screenHeight;
+    
+    int viewportWidth, viewportHeight;
+    int viewportX, viewportY;
+    
+    if (windowAspect > TARGET_ASPECT) {
+      // Window is wider than target - add pillarboxes (black bars on sides)
+      viewportHeight = screenHeight;
+      viewportWidth = cast(int)(screenHeight * TARGET_ASPECT);
+      viewportX = (screenWidth - viewportWidth) / 2;
+      viewportY = 0;
+    } else {
+      // Window is taller than target - add letterboxes (black bars on top/bottom)
+      viewportWidth = screenWidth;
+      viewportHeight = cast(int)(screenWidth / TARGET_ASPECT);
+      viewportX = 0;
+      viewportY = (screenHeight - viewportHeight) / 2;
+    }
+    
+    // Clear the entire window with black first
+    glViewport(0, 0, screenWidth, screenHeight);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    // Set viewport to maintain aspect ratio
+    glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
+    
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    //gluPerspective(45.0f, cast(GLfloat) width / cast(GLfloat) height, nearPlane, farPlane);
-    /*glFrustum(-nearPlane,
-	      nearPlane,
-	      -nearPlane * cast(GLfloat)height / cast(GLfloat)width,
-	      nearPlane * cast(GLfloat)height / cast(GLfloat)width,
-	      0.1f, farPlane);*/
+    
+    // Keep the projection using the original 4:3 aspect ratio
     glFrustum(-nearPlane,
 	      nearPlane,
 	      -nearPlane * cast(GLfloat)480 / cast(GLfloat)640,

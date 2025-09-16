@@ -34,7 +34,17 @@ public class Screen: Screen3D {
   }
 
   public override void clear() {
+    // Clear the entire framebuffer (including letterbox/pillarbox areas)
+    int[4] currentViewport;
+    glGetIntegerv(GL_VIEWPORT, currentViewport.ptr);
+    
+    // Temporarily set viewport to entire window for clearing
+    glViewport(0, 0, screenWidth, screenHeight);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    // Restore the aspect-ratio-corrected viewport
+    glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);
   }
 
   public void viewOrthoFixed() {
