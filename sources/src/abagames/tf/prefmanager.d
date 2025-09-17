@@ -15,7 +15,7 @@ public class PrefManager: abagames.util.prefmanager.PrefManager {
  public:
   static const int VERSION_NUM = 20;
   static string PREF_FILE = "tf.prf";
-  static const int RANKING_NUM = 10;
+  static const int RANKING_NUM = 7;  // we leave room for options menu below
   static const int DEFAULT_HISCORE = 10000;
   RankingItem[RANKING_NUM] ranking;
 
