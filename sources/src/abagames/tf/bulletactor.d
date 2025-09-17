@@ -265,7 +265,26 @@ public class BulletActor: Actor {
 	}
 	break;
       case BulletInst.Type.SHIP:
-	if (enemies.checkHit(bullet.pos, 1)) {
+	float damage = 1.0;
+	// Point blank damage scaling (only in rev mode)
+	if (ship.getRevMode()) {
+	  // Calculate distance traveled: frames * speed * speedRank
+	  float distanceTraveled = cnt * bullet.speed * bullet.speedRank;
+	  // Scale damage from 125% at distance 0 to 50% at distance 16 (1 screen)
+	  const float MAX_DISTANCE = 16.0; // 1 screen distance (field.size.y)
+	  const float MIN_DAMAGE_SCALE = 0.5; // 50%
+	  const float MAX_DAMAGE_SCALE = 1.5; // 150%
+	  
+	  if (distanceTraveled >= MAX_DISTANCE) {
+	    damage = MIN_DAMAGE_SCALE;
+	  } else {
+	    // Linear interpolation from 150% to 50%
+	    float ratio = distanceTraveled / MAX_DISTANCE;
+	    damage = MAX_DAMAGE_SCALE - (ratio * (MAX_DAMAGE_SCALE - MIN_DAMAGE_SCALE));
+	  }
+	}
+	
+	if (enemies.checkHit(bullet.pos, damage)) {
 	  particles.add(3, bullet.pos, bullet.deg, 0.1, bullet.speed * bullet.speedRank / 2, 0.5,
 			Particle.TypeName.SMOKE);
 	  particles.add(3, bullet.pos, bullet.deg + PI, 1, bullet.speed * bullet.speedRank, 0.3,
