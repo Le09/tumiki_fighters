@@ -34,17 +34,30 @@ public class Screen: Screen3D {
   }
 
   public override void clear() {
-    // Clear the entire framebuffer (including letterbox/pillarbox areas)
-    int[4] currentViewport;
-    glGetIntegerv(GL_VIEWPORT, currentViewport.ptr);
+    // Get current viewport (the game area)
+    int[4] gameViewport;
+    glGetIntegerv(GL_VIEWPORT, gameViewport.ptr);
     
-    // Temporarily set viewport to entire window for clearing
-    glViewport(0, 0, screenWidth, screenHeight);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    // Only clear letterbox/pillarbox areas if viewport doesn't fill entire screen
+    if (gameViewport[0] > 0 || gameViewport[1] > 0 || 
+        gameViewport[2] < screenWidth || gameViewport[3] < screenHeight) {
+      
+      // Save current clear color
+      float[4] currentClearColor;
+      glGetFloatv(GL_COLOR_CLEAR_VALUE, currentClearColor.ptr);
+      
+      // Clear entire screen with black first
+      glViewport(0, 0, screenWidth, screenHeight);
+      glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      
+      // Restore game viewport and original clear color
+      glViewport(gameViewport[0], gameViewport[1], gameViewport[2], gameViewport[3]);
+      glClearColor(currentClearColor[0], currentClearColor[1], currentClearColor[2], currentClearColor[3]);
+    }
+    
+    // Clear the game area with the proper background color
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    // Restore the aspect-ratio-corrected viewport
-    glViewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);
   }
 
   public void viewOrthoFixed() {

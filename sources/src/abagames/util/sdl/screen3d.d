@@ -102,11 +102,6 @@ public class Screen3D: Screen {
       viewportY = (screenHeight - viewportHeight) / 2;
     }
     
-    // Clear the entire window with black first
-    glViewport(0, 0, screenWidth, screenHeight);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    
     // Set viewport to maintain aspect ratio
     glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
     
