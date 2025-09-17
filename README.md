@@ -4,6 +4,17 @@ Stick more enemies and become much stronger.
 
 Sticky 2D shooter, 'TUMIKI Fighters'.
 
+## REV 2
+
+This is an experimental fork to test new features.
+Currently this version adds:
+- proper screen resize. Full screen is full resolution rather than scaled 480, and resizing keeps the proper aspect ratio
+- REV mode
+  - standardized control scheme. The tilt is locked on unless the secondary button is pressed, which inverts the logic compared to the original
+  - point blanking. Deals more damage at close range
+- Options: level select, boss rush, bullet slowdown, REV mode (default to true). Disabling REV mode means there are no changes to the gameplay; bullet slowdown is the original code.
+
+
 ## How to play
 
 Control your ship and destroy enemies. The ship is destroyed when it is hit by a bullet. The body of the enemy has no collision damage.
