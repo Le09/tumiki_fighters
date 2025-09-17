@@ -6,6 +6,12 @@
 module abagames.tf.prefmanager;
 
 private import std.stdio;
+private import std.process;
+private import std.file;
+private import std.path;
+version (Windows) {
+    private import std.process;
+}
 private import abagames.util.prefmanager;
 
 /**
@@ -14,12 +20,54 @@ private import abagames.util.prefmanager;
 public class PrefManager: abagames.util.prefmanager.PrefManager {
  public:
   static const int VERSION_NUM = 20;
-  static string PREF_FILE = "tf.prf";
+  static string PREF_FILE = "tf.prf"; // Will be overridden at runtime
   static const int RANKING_NUM = 7;  // we leave room for options menu below
   static const int DEFAULT_HISCORE = 10000;
   RankingItem[RANKING_NUM] ranking;
 
+  private static string getPrefFilePath() {
+    string homeDir = "";
+    string prefDir = "";
+    
+    version (Windows) {
+      // Windows: Use APPDATA environment variable
+      homeDir = environment.get("APPDATA", "");
+      if (homeDir.length > 0) {
+        prefDir = buildPath(homeDir, "tumikifighters");
+      }
+    } else {
+      // Unix-like systems (Linux, macOS, etc.): Use HOME environment variable
+      homeDir = environment.get("HOME", "");
+      if (homeDir.length > 0) {
+        // Use XDG Base Directory specification
+        string xdgDataHome = environment.get("XDG_DATA_HOME", "");
+        if (xdgDataHome.length > 0) {
+          prefDir = buildPath(xdgDataHome, "tumikifighters");
+        } else {
+          // Default to ~/.local/share/tumikifighters
+          prefDir = buildPath(homeDir, ".local", "share", "tumikifighters");
+        }
+      }
+    }
+    
+    // If we have a valid preference directory, try to create it and use it
+    if (prefDir.length > 0) {
+      try {
+        mkdirRecurse(prefDir);
+        return buildPath(prefDir, "tf.prf");
+      } catch (Exception) {
+        // If we can't create the directory, fall back to current directory
+        // if installed, the executable directory won't be writable
+        return "tf.prf";
+      }
+    }
+    return "tf.prf";
+  }
+
   public this() {
+    // Set the preferences file path at runtime
+    PREF_FILE = getPrefFilePath();
+    
     foreach (ref RankingItem ri; ranking)
       ri = new RankingItem;
   }
