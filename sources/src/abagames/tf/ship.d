@@ -69,6 +69,10 @@ public class Ship: BulletTarget {
   Vector[8] friendPos;
   bool btnPrsd;
   bool pullIn;
+  bool revMode = true;
+  bool btn2PrsdPrev;
+  int btn2TapTimer;
+  const int DOUBLE_TAP_TIME = 15; // frames for double-tap detection
 
   public static void initRand() {
     rand = new Rand;
@@ -124,6 +128,8 @@ public class Ship: BulletTarget {
     fireCnt = 0;
     deg = 0;
     pullIn = false;
+    btn2PrsdPrev = false;
+    btn2TapTimer = 0;
   }
 
   public void startStage() {
@@ -230,15 +236,45 @@ public class Ship: BulletTarget {
 	SoundManager.playSe(SoundManager.Se.SHIP_SHOT);
       }
     }
-    if (btn & Pad.PAD_BUTTON2) {
+    bool btn2Pressed = (btn & Pad.PAD_BUTTON2) != 0;
+    
+    // Handle double-tap detection for tilt reset
+    if (btn2Pressed && !btn2PrsdPrev) {
+      // Button 2 just pressed
+      if (btn2TapTimer > 0) {
+        // Double-tap detected - reset tilt to horizontal
+        deg = 0;
+        btn2TapTimer = 0;
+      } else {
+        // First tap
+        btn2TapTimer = DOUBLE_TAP_TIME;
+      }
+    }
+    btn2PrsdPrev = btn2Pressed;
+    
+    // Decrease double-tap timer
+    if (btn2TapTimer > 0)
+      btn2TapTimer--;
+    
+    if (btn2Pressed) {
       speed += (SLOW_SPEED - speed) * 0.2;
       if (manager.mode == GameManager.Mode.EXTRA)
 	stuckEnemies.pullIn();
+      
+      // Rev mode: tilt when button 2 is pressed
+      if (revMode) {
+        deg += (vel.y * BANK_BASE - deg) * 0.05;
+      }
     } else {
       speed += (BASE_SPEED - speed) * 0.2;
-      deg += (vel.y * BANK_BASE - deg) * 0.05;
       if (manager.mode == GameManager.Mode.EXTRA)
 	stuckEnemies.pushOut();
+      
+      // Rev mode: don't tilt when button 2 is not pressed
+      // Normal mode: tilt when button 2 is not pressed
+      if (!revMode) {
+        deg += (vel.y * BANK_BASE - deg) * 0.05;
+      }
     }
     if (fireCnt > 0)
       fireCnt--;
@@ -357,5 +393,13 @@ public class Ship: BulletTarget {
 
   public void drawLeft(float x, float y, float z) {
     tumikiSet.draw(x, y, z, false, false);
+  }
+
+  public bool getRevMode() {
+    return revMode;
+  }
+
+  public void toggleRevMode() {
+    revMode = !revMode;
   }
 }
