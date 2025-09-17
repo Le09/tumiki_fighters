@@ -21,6 +21,7 @@ public class EnemySpec {
   EnemyPartSpec[] parts;
   AttackForm[] attackForm;
   float sizeXm, sizeXp, sizeYm, sizeYp;
+  string fileName; // Store the fileName for boss rush identification
  private:
   static EnemySpec[string] instances;
   static string ENEMYSPEC_DIR_NAME = "enemy";
@@ -85,6 +86,7 @@ public class EnemySpec {
   }
 
   private this(string fileName) {
+    this.fileName = fileName;
     char[][] data = CSVTokenizer.readFile(ENEMYSPEC_DIR_NAME ~ "/" ~ fileName);
     this(data);
   }

@@ -56,6 +56,8 @@ public class GameManager: abagames.util.sdl.gamemanager.GameManager {
     NORMAL, EXTRA
   }
   int mode = Mode.EXTRA;
+  bool bossRushMode;
+  int bossRushBossIndex;
  private:
   Pad pad;
   PrefManager prefManager;
@@ -189,6 +191,34 @@ public class GameManager: abagames.util.sdl.gamemanager.GameManager {
 
   public void startInGameFirst() {
     stage = 0;
+    bossRushMode = false;
+    startInGame();
+    state = State.START_GAME;
+    ship.startStage();
+    Splinter.setSignNum(2);
+    credit = CREDIT_NUM;
+  }
+
+  public void startInGameAtLevel(int level) {
+    if (level < 0) level = 0;
+    if (level >= StageManager.STAGE_NUM) level = StageManager.STAGE_NUM - 1;
+    stage = level;
+    bossRushMode = false;
+    startInGame();
+    state = State.START_GAME;
+    ship.startStage();
+    Splinter.setSignNum(2);
+    credit = CREDIT_NUM;
+  }
+
+  public void startBossRush() {
+    startBossRushAtLevel(0);
+  }
+  
+  public void startBossRushAtLevel(int level) {
+    bossRushMode = true;
+    bossRushBossIndex = level;
+    stage = level;
     startInGame();
     state = State.START_GAME;
     ship.startStage();
@@ -231,16 +261,29 @@ public class GameManager: abagames.util.sdl.gamemanager.GameManager {
     bullets.clear();
     splinters.clear();
     ship.start();
-    stageManager.start(stage);
+    
+    if (bossRushMode) {
+      // In boss rush mode, skip to the boss immediately
+      stageManager.startBossRush(stage);
+    } else {
+      stageManager.start(stage);
+    }
+    
     field.start(stage);
     gauge.init();
     bossTimer = BOSSTIMER_FREEZED;
     bossDstCnt = -1;
-    letters.add("STAGE " ~ to!string(stage + 1), 180, 150, 24, 240, -4);
-    letters.add(stageMessage[stage], 320 - stageMessage[stage].length * 10, 270, 10, 240, -2);
-    int si = stage % (SoundManager.STAGE_BGM_NUM * 2 - 1);
-    if (si >= SoundManager.STAGE_BGM_NUM)
-      si = SoundManager.STAGE_BGM_NUM * 2 - si - 2;
+    
+    if (bossRushMode) {
+      letters.add("BOSS RUSH", 200, 150, 24, 240, -4);
+      letters.add("BOSS " ~ to!string(bossRushBossIndex + 1), 220, 200, 16, 240, -2);
+      letters.add(stageMessage[stage], 320 - stageMessage[stage].length * 10, 270, 10, 240, -2);
+    } else {
+      letters.add("STAGE " ~ to!string(stage + 1), 180, 150, 24, 240, -4);
+      letters.add(stageMessage[stage], 320 - stageMessage[stage].length * 10, 270, 10, 240, -2);
+    }
+    
+    int si = stage % SoundManager.STAGE_BGM_NUM;
     SoundManager.playBgm(SoundManager.Bgm.STG1 + si);
   }
 
@@ -320,6 +363,10 @@ public class GameManager: abagames.util.sdl.gamemanager.GameManager {
     stageManager.setRank(r);
   }
 
+  public Ship getShip() {
+    return ship;
+  }
+
   // Move actors in game(called once per frame).
   public override void move() {
     if (pad.keys[SDL_SCANCODE_ESCAPE] == SDL_PRESSED) {
@@ -350,19 +397,39 @@ public class GameManager: abagames.util.sdl.gamemanager.GameManager {
   private bool pPrsd = true;
 
   private void moveInGame() {
-    if (bossDstCnt > STAGE_END_CNT - 120 && stage >= StageManager.STAGE_NUM - 1) {
-      stage++;
-      bossDstCnt = -1;
-      bossTimer = BOSSTIMER_FREEZED;
-      startEnding();
-      return;
-    }
-    if (bossDstCnt > STAGE_END_CNT) {
-      stage++;
-      startStage();
-      return;
-    } else if (bossDstCnt == STAGE_END_CNT - 119) {
-      SoundManager.playSe(SoundManager.Se.PROPELLER);
+    if (bossRushMode) {
+      // Boss rush mode: after each boss, move to next stage boss or end
+      if (bossDstCnt > STAGE_END_CNT) {
+        bossRushBossIndex++;
+        if (bossRushBossIndex >= StageManager.STAGE_NUM) {
+          // All stage bosses defeated, game over
+          startGameover();
+          return;
+        } else {
+          // Move to next stage boss
+          stage = bossRushBossIndex;
+          startStage();
+          return;
+        }
+      } else if (bossDstCnt == STAGE_END_CNT - 119) {
+        SoundManager.playSe(SoundManager.Se.PROPELLER);
+      }
+    } else {
+      // Normal mode progression
+      if (bossDstCnt > STAGE_END_CNT - 120 && stage >= StageManager.STAGE_NUM - 1) {
+        stage++;
+        bossDstCnt = -1;
+        bossTimer = BOSSTIMER_FREEZED;
+        startEnding();
+        return;
+      }
+      if (bossDstCnt > STAGE_END_CNT) {
+        stage++;
+        startStage();
+        return;
+      } else if (bossDstCnt == STAGE_END_CNT - 119) {
+        SoundManager.playSe(SoundManager.Se.PROPELLER);
+      }
     }
     if (state == State.IN_GAME)
       stageManager.move();
@@ -413,19 +480,19 @@ public class GameManager: abagames.util.sdl.gamemanager.GameManager {
     } else {
       pPrsd = false;
     }
-    /*if (!nowait) {
+    if (!nowait) {
       // Intentional slowdown when the total speed of bullets is over SLOWDOWN_START_BULLETS_SPEED
       if (BulletActor.totalBulletsSpeed > SLOWDOWN_START_BULLETS_SPEED) {
 	float sm = BulletActor.totalBulletsSpeed / SLOWDOWN_START_BULLETS_SPEED;
 	if (sm > 1.75)
 	  sm = 1.75;
 	interval += (sm * mainLoop.INTERVAL_BASE - interval) * 0.1;
-	mainLoop.interval = (int) interval;
+	mainLoop.interval = cast(int) interval;
       } else {
 	interval += (mainLoop.INTERVAL_BASE - interval) * 0.08;
-	mainLoop.interval = (int) interval;
+	mainLoop.interval = cast(int) interval;
       }
-      }*/
+      }
   }
 
   private bool btnPrsd, arwPrsd;

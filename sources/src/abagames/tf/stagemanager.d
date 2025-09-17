@@ -79,6 +79,76 @@ public class StageManager {
       ea.cnt = -1;
   }
 
+  public void startBossRush(int sn) {
+    // For boss rush, find only the last boss pattern in the stage
+    EnemyAppearancePattern lastBossPattern;
+    bool foundBoss = false;
+    
+    // Find the last boss pattern by iterating backwards
+    for (int i = cast(int)(stage[sn].pattern.length - 1); i >= 0; i--) {
+      EnemyAppearancePattern eap = stage[sn].pattern[i];
+      // Check if this is a boss pattern by looking at the spec file name
+      if (eap.spec.fileName.length >= 5 && eap.spec.fileName[0..5] == "boss/") {
+        lastBossPattern = eap;
+        foundBoss = true;
+        break;
+      }
+    }
+    
+    if (foundBoss) {
+      // Create a new pattern with immediate start time
+      EnemyAppearancePattern bossEap = new EnemyAppearancePattern(
+        0, // Start immediately
+        lastBossPattern.duration,
+        lastBossPattern.interval,
+        lastBossPattern.posType,
+        lastBossPattern.pos,
+        lastBossPattern.width,
+        lastBossPattern.waitTillEnemiesDestroyed,
+        lastBossPattern.spec
+      );
+      bossEap.move = lastBossPattern.move;
+      
+      EnemyAppearancePattern[] bossPatterns = new EnemyAppearancePattern[1];
+      bossPatterns[0] = bossEap;
+      pattern = new EAPIterator(bossPatterns);
+      nextApp = pattern.next;
+    } else {
+      // Fallback: if no boss patterns found, use the last pattern
+      if (stage[sn].pattern.length > 0) {
+        EnemyAppearancePattern[] fallbackPatterns = new EnemyAppearancePattern[1];
+        EnemyAppearancePattern lastPattern = stage[sn].pattern[stage[sn].pattern.length - 1];
+        EnemyAppearancePattern bossEap = new EnemyAppearancePattern(
+          0, // Start immediately for fallback
+          lastPattern.duration,
+          lastPattern.interval,
+          lastPattern.posType,
+          lastPattern.pos,
+          lastPattern.width,
+          lastPattern.waitTillEnemiesDestroyed,
+          lastPattern.spec
+        );
+        bossEap.move = lastPattern.move;
+        fallbackPatterns[0] = bossEap;
+        pattern = new EAPIterator(fallbackPatterns);
+        nextApp = pattern.next;
+      } else {
+        pattern = new EAPIterator(new EnemyAppearancePattern[0]);
+        nextApp = null;
+      }
+    }
+    
+    rand.setSeed(stage[sn].randSeed);
+    warningCnt = 0; // Skip warning, go straight to boss
+    Bullet.setRandSeed(stage[sn].randSeed);
+    cnt = 0;
+    bossComing = true; // Start with boss coming
+    rank = 0;
+    speedRank = 1;
+    foreach (EnemyAppearance ea; appearance)
+      ea.cnt = -1;
+  }
+
   private void setAppearance(EnemyAppearancePattern eap, bool isBoss) {
     eaIdx--;
     if (eaIdx < 0)
